@@ -1,0 +1,114 @@
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(ggmap)
+library(maptools)
+library(classInt)
+library(maps)
+library(RColorBrewer)
+library(fields)
+library(spatstat)
+library(spdep)
+library(raster)
+library(splancs)
+
+##############################################################################################################
+########### Read and Fromat the Data ###########
+setwd("~/Box Sync/UM Fall 2016/BIOSTAT 696/Project")
+
+DT = fread("311__Service_Requests.csv")
+DT$OPEN_DT = as.POSIXct(DT[,2][[1]], format = "%m/%d/%Y %I:%M:%S %p")
+DT$TARGET_DT = as.POSIXct(DT[,3][[1]], format = "%m/%d/%Y %I:%M:%S %p")
+DT$CLOSED_DT  = as.POSIXct(DT[,4][[1]], format = "%m/%d/%Y %I:%M:%S %p")
+
+DT$neighborhood = as.factor(DT$neighborhood)
+
+DT = DT %>% filter(CASE_TITLE == "Bed Bugs")
+
+##############################################################################################################
+########### Create Data Subsets ###########
+
+DT_su_15 = DT %>% filter(OPEN_DT >= "2015-06-01", OPEN_DT <= "2015-08-30")
+DT_fa_15 = DT %>% filter(OPEN_DT >= "2015-09-01", OPEN_DT <= "2015-11-30")
+aDT_wi_15 = DT %>% filter(OPEN_DT >= "2015-01-01", OPEN_DT <= "2015-01-31")
+bDT_wi_15 = DT %>% filter(OPEN_DT >= "2015-12-01", OPEN_DT <= "2015-12-31")
+DT_wi_15 = rbind(aDT_wi_15, bDT_wi_15)
+DT_sp_15 = DT %>% filter(OPEN_DT >= "2015-03-01", OPEN_DT <= "2015-05-30")
+
+##############################################################################################################
+########### Maping the Points for Seasons ###########
+
+loc = c(-71.18, 42.23, -70.96, 42.40)
+boston_map = get_map(location = loc, source = "google", maptype = "toner")
+map = ggmap(boston_map)
+
+map_su_15 = map + geom_point(data = DT_su_15, aes(x = LONGITUDE, y = LATITUDE), alpha = 1, colour = "blue")
+map_fa_15 = map + geom_point(data = DT_fa_15, aes(x = LONGITUDE, y = LATITUDE), alpha = 1, colour = "blue")
+map_wi_15 = map + geom_point(data = DT_wi_15, aes(x = LONGITUDE, y = LATITUDE), alpha = 1, colour = "blue")
+map_sp_15 = map + geom_point(data = DT_sp_15, aes(x = LONGITUDE, y = LATITUDE), alpha = 1, colour = "blue")
+
+map_su_15
+map_fa_15
+map_wi_15
+map_sp_15
+
+##############################################################################################################
+########### Getting the Shape File for Boston ###########
+
+setwd("~/Box Sync/UM Fall 2016/BIOSTAT 696/Data/tl_2016_us_county")
+shape = shapefile("tl_2016_us_county.shp")
+#which(shape$NAME == "Suffolk")
+boston_shape <- shape[62,]
+
+window = owin(xrange = c(-71.18,-70.96), yrange = c(42.23, 42.40))
+#window = as.owin(boston_shape)
+
+##############################################################################################################
+########### PPP and K and L functions ###########
+set.seed(1)
+xDT_su_15 = DT_su_15 #[sample(1:dim(DT_su_15)[1], 2500),]
+xDT_fa_15 = DT_fa_15 #[sample(1:dim(DT_fa_15)[1], 2500),]
+xDT_wi_15 = DT_wi_15 #[sample(1:dim(DT_wi_15)[1], 2500),]
+xDT_sp_15 = DT_sp_15 #[sample(1:dim(DT_sp_15)[1], 2500),]
+
+calls_ppp_su_15 = ppp(x = xDT_su_15$LONGITUDE, y = xDT_su_15$LATITUDE, window = window)
+calls_ppp_fa_15 = ppp(x = xDT_fa_15$LONGITUDE, y = xDT_fa_15$LATITUDE, window = window)
+calls_ppp_wi_15 = ppp(x = xDT_wi_15$LONGITUDE, y = xDT_wi_15$LATITUDE, window = window)
+calls_ppp_sp_15 = ppp(x = xDT_sp_15$LONGITUDE, y = xDT_sp_15$LATITUDE, window = window)
+
+K_su_15 = Kest(calls_ppp_su_15)
+K_fa_15 = Kest(calls_ppp_fa_15)
+K_wi_15 = Kest(calls_ppp_wi_15)
+K_sp_15 = Kest(calls_ppp_sp_15)
+
+
+plot(K_su_15, main = "K")
+plot(K_su_15, sqrt(iso/pi) ~ r, main = "L")
+plot(K_fa_15, main = "K")
+plot(K_fa_15, sqrt(iso/pi) ~ r, main = "L")
+plot(K_wi_15, main = "K")
+plot(K_wi_15, sqrt(iso/pi) ~ r, main = "L")
+plot(K_sp_15, main = "K")
+plot(K_sp_15, sqrt(iso/pi) ~ r, main = "L")
+
+quadrat.test(calls_ppp_wi_15)
+quadrat.test(calls_ppp_wi_15, alternative = "clustered")
+quadrat.test(calls_ppp_wi_15, alternative = "regular")
+
+##############################################################################################################
+########### Density Function Plots ###########
+
+source('~/Box Sync/UM Fall 2016/BIOSTAT 696/Project/density_plot.R')
+
+par(mfrow = c(2,2))
+density_plot(calls_ppp_su_15)
+title(main = "Summer")
+density_plot(calls_ppp_fa_15)
+title(main = "Fall")
+density_plot(calls_ppp_wi_15)
+title(main = "Winter")
+density_plot(calls_ppp_sp_15)
+title(main = "Spring")
+
+
+
