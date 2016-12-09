@@ -123,11 +123,27 @@ boston.pop <- data.table(neighborhood = c("Allston", "Back Bay",
    66388, 33889, 33881))
    
 ####################################################################################################################
-######## Create areal level dataset
+######## Create areal level datasets
 
 areal.bedbugs <- data.table(DT)[, .N, .(neighborhood)]
 areal.bedbugs <- setkey(boston.pop, neighborhood)[setkey(areal.bedbugs, neighborhood)] # merge with population data
 areal.bedbugs <- areal.bedbugs[complete.cases(areal.bedbugs)]
+
+areal.su <-  data.table(DT_su_15)[, .N, .(neighborhood)]
+areal.su <- setkey(boston.pop, neighborhood)[setkey(areal.su, neighborhood)]
+areal.su <- areal.su[complete.cases(areal.su)]
+
+areal.fa <-  data.table(DT_fa_15)[, .N, .(neighborhood)]
+areal.fa <- setkey(boston.pop, neighborhood)[setkey(areal.fa, neighborhood)]
+areal.fa <- areal.fa[complete.cases(areal.fa)]
+
+areal.wi <-  data.table(DT_wi_15)[, .N, .(neighborhood)]
+areal.wi <- setkey(boston.pop, neighborhood)[setkey(areal.wi, neighborhood)]
+areal.wi <- areal.wi[complete.cases(areal.wi)]
+
+areal.sp <-  data.table(DT_sp_15)[, .N, .(neighborhood)]
+areal.sp <- setkey(boston.pop, neighborhood)[setkey(areal.sp, neighborhood)]
+areal.sp <- areal.sp[complete.cases(areal.sp)]
 
 ####################################################################################################################
 ###### Read in Boston neighborhood shapefile and remove neighborhoods we can't use
@@ -147,7 +163,19 @@ boston.listw <- nb2listw(boston.nb, zero.policy = TRUE) # zero.policy =  allows 
 
 moran.test(areal.bedbugs[!neighborhood %in% c("East Boston", "Charlestown", "Allston"), N], 
   boston.listw, rank=TRUE, zero.policy = TRUE)
- 
+  
+moran.test(areal.su[!neighborhood %in% c("East Boston", "Charlestown", "Allston"), N], 
+  boston.listw, rank=TRUE, zero.policy = TRUE)
+
+moran.test(areal.fa[!neighborhood %in% c("East Boston", "Charlestown", "Allston"), N], 
+  boston.listw, rank=TRUE, zero.policy = TRUE)
+  
+moran.test(areal.wi[!neighborhood %in% c("East Boston", "Charlestown", "Allston"), N], 
+  boston.listw, rank=TRUE, zero.policy = TRUE)
+  
+moran.test(areal.sp[!neighborhood %in% c("East Boston", "Charlestown", "Allston"), N], 
+  boston.listw, rank=TRUE, zero.policy = TRUE)
+  
 ####################################################################################################################
 ############ Create weight Matrix for carleroux model
 
