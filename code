@@ -123,27 +123,20 @@ boston.pop <- data.table(neighborhood = c("Allston", "Back Bay",
    66388, 33889, 33881))
    
 ####################################################################################################################
-######## Create areal level datasets
+######## Create areal level dataset
 
-areal.bedbugs <- data.table(DT)[, .N, .(neighborhood)]
-areal.bedbugs <- setkey(boston.pop, neighborhood)[setkey(areal.bedbugs, neighborhood)] # merge with population data
-areal.bedbugs <- areal.bedbugs[complete.cases(areal.bedbugs)]
+DT <- data.table(DT)
+DT[OPEN_DT >= "2015-06-01" & OPEN_DT <= "2015-08-30", season := "summer"]
+DT[OPEN_DT >= "2015-09-01" & OPEN_DT <= "2015-11-30", season := "fall"]
+DT[OPEN_DT >= "2015-03-01" & OPEN_DT <= "2015-05-30", season := "spring"]
+DT[(OPEN_DT >= "2015-12-01" & OPEN_DT <= "2015-12-31") | (OPEN_DT >= "2015-01-01" & OPEN_DT <= "2015-01-31"), season := "winter"]
+areal.bedbugs <- DT[!is.na(season), .N, .(neighborhood, season)]
+areal.bedbugs <- dcast(areal.bedbugs, neighborhood ~ season)
+for (j in names(areal.bedbugs)) {
+  set(areal.bedbugs,which(is.na(areal.bedbugs[[j]])),j,0)
+}
+areal.bedbugs[, total := fall+winter+spring+summer]
 
-areal.su <-  data.table(DT_su_15)[, .N, .(neighborhood)]
-areal.su <- setkey(boston.pop, neighborhood)[setkey(areal.su, neighborhood)]
-areal.su <- areal.su[complete.cases(areal.su)]
-
-areal.fa <-  data.table(DT_fa_15)[, .N, .(neighborhood)]
-areal.fa <- setkey(boston.pop, neighborhood)[setkey(areal.fa, neighborhood)]
-areal.fa <- areal.fa[complete.cases(areal.fa)]
-
-areal.wi <-  data.table(DT_wi_15)[, .N, .(neighborhood)]
-areal.wi <- setkey(boston.pop, neighborhood)[setkey(areal.wi, neighborhood)]
-areal.wi <- areal.wi[complete.cases(areal.wi)]
-
-areal.sp <-  data.table(DT_sp_15)[, .N, .(neighborhood)]
-areal.sp <- setkey(boston.pop, neighborhood)[setkey(areal.sp, neighborhood)]
-areal.sp <- areal.sp[complete.cases(areal.sp)]
 
 ####################################################################################################################
 ###### Read in Boston neighborhood shapefile and remove neighborhoods we can't use
@@ -159,21 +152,21 @@ boston.nb <- poly2nb(boston.island.poly)
 boston.listw <- nb2listw(boston.nb, zero.policy = TRUE) # zero.policy =  allows Moran's test but will fail on regression later
 
 ####################################################################################################################
-######## Moran's test 
+######## Moran's test s
 
-moran.test(areal.bedbugs[!neighborhood %in% c("East Boston", "Charlestown", "Allston"), N], 
+moran.test(areal.bedbugs[!neighborhood %in% c("East Boston", "Charlestown", "Allston"), total], 
   boston.listw, rank=TRUE, zero.policy = TRUE)
   
-moran.test(areal.su[!neighborhood %in% c("East Boston", "Charlestown", "Allston"), N], 
+moran.test(areal.bedbugs[!neighborhood %in% c("East Boston", "Charlestown", "Allston"), summer], 
+  boston.listw, rank=TRUE, zero.policy = TRUE)
+  
+moran.test(areal.bedbugs[!neighborhood %in% c("East Boston", "Charlestown", "Allston"), fall], 
+  boston.listw, rank=TRUE, zero.policy = TRUE)
+  
+moran.test(areal.bedbugs[!neighborhood %in% c("East Boston", "Charlestown", "Allston"), winter], 
   boston.listw, rank=TRUE, zero.policy = TRUE)
 
-moran.test(areal.fa[!neighborhood %in% c("East Boston", "Charlestown", "Allston"), N], 
-  boston.listw, rank=TRUE, zero.policy = TRUE)
-  
-moran.test(areal.wi[!neighborhood %in% c("East Boston", "Charlestown", "Allston"), N], 
-  boston.listw, rank=TRUE, zero.policy = TRUE)
-  
-moran.test(areal.sp[!neighborhood %in% c("East Boston", "Charlestown", "Allston"), N], 
+moran.test(areal.bedbugs[!neighborhood %in% c("East Boston", "Charlestown", "Allston"), spring], 
   boston.listw, rank=TRUE, zero.policy = TRUE)
   
 ####################################################################################################################
