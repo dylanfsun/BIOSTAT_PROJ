@@ -183,7 +183,7 @@ for(i in 1:length(boston.rep)){
 
 ####################################################################################################################
 ################ Poisson bedbug Carleroux model
-boston.poisson <- S.CARleroux(N ~ population_2010, data = areal.bedbugs[!neighborhood %in% c("East Boston", "Charlestown", "Allston")], 
+boston.poisson <- S.CARleroux(total ~ population_2010, data = areal.bedbugs[!neighborhood %in% c("East Boston", "Charlestown", "Allston")], 
   W=W, family="poisson",fix.rho=TRUE,rho=1,burnin=15000, n.sample=600000,
   thin=1, prior.mean.beta=NULL, prior.var.beta=NULL, prior.nu2=NULL, prior.tau2=NULL, verbose=FALSE)
 boston.poisson$summary.results
