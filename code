@@ -111,4 +111,67 @@ density_plot(calls_ppp_sp_15)
 title(main = "Spring")
 
 
+####################################################################################################################
+######## Manually inputted Boston population data ##########
+
+boston.pop <- data.table(neighborhood = c("Allston", "Back Bay", 
+  "Charlestown", "Chinatown", "East Boston", "Fenway", "Hyde Park", 
+   "Jamaica Plain", "Mattapan", "Dorchester", "North End", "Roslindale", "Roxbury", 
+   "South Boston", "South End"), population_2000 = 
+   c(66467, 46504, 15195, 5138, 38413, 47449, 28392, 36293, 27815, 134004, 6401, 32527, 58723, 30048, 27311), 
+   population_2010 = c(72092, 50017, 16439, 7383, 40508, 54565, 28488, 35401, 25562, 130535, 6915, 29826, 
+   66388, 33889, 33881))
+   
+####################################################################################################################
+######## Create areal level dataset
+
+areal.bedbugs <- data.table(DT)[, .N, .(neighborhood)]
+areal.bedbugs <- setkey(boston.pop, neighborhood)[setkey(areal.bedbugs, neighborhood)] # merge with population data
+areal.bedbugs <- areal.bedbugs[complete.cases(areal.bedbugs)]
+
+####################################################################################################################
+###### Read in Boston neighborhood shapefile and remove neighborhoods we can't use
+
+boston.poly <- readOGR("./Bos_neighborhoods/", "Bos_neighborhoods")
+boston.poly <- spTransform(boston.poly, CRS("+proj=longlat +datum=WGS84"))
+boston.island.poly <- subset(boston.poly, (boston.poly$Name %in% areal.bedbugs$neighborhood)) # removes 
+# neighborhoods not found in our population datset
+boston.island.poly <- subset(boston.island.poly, !(boston.island.poly$Name %in% c("East Boston", "Charlestown", "Allston")))
+# Then remove neighborhoods that don't have any other adjacent neighborhoods (basically islands)
+
+boston.nb <- poly2nb(boston.island.poly)
+boston.listw <- nb2listw(boston.nb, zero.policy = TRUE) # zero.policy =  allows Moran's test but will fail on regression later
+
+####################################################################################################################
+######## Moran's test 
+
+moran.test(areal.bedbugs[!neighborhood %in% c("East Boston", "Charlestown", "Allston"), N], 
+  boston.listw, rank=TRUE, zero.policy = TRUE)
+ 
+####################################################################################################################
+############ Create weight Matrix for carleroux model
+
+boston.weights <- nb2WB(boston.nb)
+
+# populate matrix W
+boston.rep <- rep(1:9, boston.weights$num) # Where 9 is the number of neighborhoods we have left
+W <- matrix(0,9,9)
+for(i in 1:length(boston.rep)){
+    W[boston.rep[i], boston.weights$adj[i]] <- 1
+}
+
+####################################################################################################################
+################ Poisson bedbug Carleroux model
+boston.poisson <- S.CARleroux(N ~ population_2010, data = areal.bedbugs[!neighborhood %in% c("East Boston", "Charlestown", "Allston")], 
+  W=W, family="poisson",fix.rho=TRUE,rho=1,burnin=15000, n.sample=600000,
+  thin=1, prior.mean.beta=NULL, prior.var.beta=NULL, prior.nu2=NULL, prior.tau2=NULL, verbose=FALSE)
+boston.poisson$summary.results
+plot(boston.poisson$samples$tau2)
+
+
+
+
+
+
+
 
