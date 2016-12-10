@@ -189,8 +189,21 @@ boston.poisson <- S.CARleroux(total ~ population_2010, data = areal.bedbugs[!nei
 boston.poisson$summary.results
 plot(boston.poisson$samples$tau2)
 
-
-
+####################################################################################################################
+# change neighborhoods to match pop list
+DT[neighborhood == "Allston / Brighton", neighborhood := "Allston"]
+DT[neighborhood == "Brighton", neighborhood := "Allston"]
+DT[neighborhood == "Downtown / Financial District", neighborhood := "Downtown"]
+DT[neighborhood == "Fenway / Kenmore / Audubon Circle / Longwood", neighborhood := "Fenway"]
+DT[neighborhood == "Greater Mattapan", neighborhood := "Mattapan"]
+DT[neighborhood == "South Boston / South Boston Waterfront", neighborhood := "South Boston"]
+DT[neighborhood == "West Roxbury", neighborhood := "Roxbury"]
+DT[neighborhood == "Boston", neighborhood := ""]
+DT[neighborhood == "East Boston", neighborhood := ""]
+DT[neighborhood == "Charlestown", neighborhood := ""]
+DT[neighborhood == "Beacon Hill", neighborhood := ""]
+DT[neighborhood == "Downtown", neighborhood := ""]
+DT[neighborhood == "Mission Hill", neighborhood := ""]
 
 
 
